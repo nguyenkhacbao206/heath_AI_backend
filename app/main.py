@@ -13,8 +13,8 @@ from app.services.sample_matcher import SAMPLE_DIR
 
 # Frontend React (Vite) chạy ở cổng 5173
 ALLOWED_ORIGINS: list[str] = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
 ]
 
 app = FastAPI(
