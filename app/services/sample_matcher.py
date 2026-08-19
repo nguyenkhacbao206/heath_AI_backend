@@ -17,6 +17,7 @@ Thêm ảnh mẫu mới chỉ cần copy file vào thư mục, không phải s�
 
 import hashlib
 import logging
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -118,12 +119,29 @@ def load_samples(force_reload: bool = False) -> list[Sample]:
                 logger.warning("Bỏ qua ảnh mẫu không đọc được: %s", path.name)
                 continue
 
+            descriptors = describe(image)
+            n_features = 0 if descriptors is None else len(descriptors)
+            logger.info(
+                "  + ảnh mẫu '%s' <- %s (%dx%d, %d đặc trưng)",
+                path.stem,
+                path.name,
+                image.shape[1],
+                image.shape[0],
+                n_features,
+            )
+            if n_features < MIN_GOOD_MATCHES:
+                logger.warning(
+                    "    ảnh mẫu '%s' quá ít đặc trưng (%d) -> khó nhận dạng",
+                    path.stem,
+                    n_features,
+                )
+
             samples.append(
                 Sample(
                     food_id=path.stem,  # tên file = food_id
                     filename=path.name,
                     sha1=sha1_of(data),
-                    descriptors=describe(image),
+                    descriptors=descriptors,
                 )
             )
 
@@ -155,24 +173,46 @@ def match(image: np.ndarray, image_sha1: str) -> tuple[str, str] | None:
     """
     samples = load_samples()
     if not samples:
+        logger.warning("Không có ảnh mẫu nào để so khớp")
         return None
 
     # 1) Trùng file tuyệt đối - nhanh, không cần xử lý ảnh
+    logger.debug("So hash: ảnh gửi lên sha1=%s", image_sha1[:12])
     for sample in samples:
         if sample.sha1 == image_sha1:
+            logger.info("KHỚP TUYỆT ĐỐI: trùng hash với ảnh mẫu '%s'", sample.food_id)
             return sample.food_id, "exact"
+    logger.debug("Không trùng hash ảnh mẫu nào -> chuyển sang so đặc trưng ORB")
 
     # 2) So khớp đặc trưng ORB, lấy ảnh mẫu có nhiều điểm khớp nhất
+    started = time.perf_counter()
     descriptors = describe(image)
+    if descriptors is None:
+        logger.warning("Ảnh gửi lên không dò được đặc trưng nào (quá trơn/mờ?)")
+        return None
+    logger.debug("Ảnh gửi lên có %d đặc trưng ORB", len(descriptors))
+
     best_id: str | None = None
     best_score = 0
     for sample in samples:
         score = count_good_matches(descriptors, sample.descriptors)
+        logger.info("  so với '%s': %d điểm khớp", sample.food_id, score)
         if score > best_score:
             best_score, best_id = score, sample.food_id
 
-    logger.info("Ảnh mẫu gần nhất: %s (%d điểm khớp)", best_id, best_score)
+    logger.info(
+        "Gần nhất: '%s' với %d điểm khớp (cần >= %d) | mất %.0fms",
+        best_id,
+        best_score,
+        MIN_GOOD_MATCHES,
+        (time.perf_counter() - started) * 1000,
+    )
+
     if best_id is not None and best_score >= MIN_GOOD_MATCHES:
         return best_id, "features"
 
+    logger.warning(
+        "Không ảnh mẫu nào đạt ngưỡng %d điểm -> ảnh này không giống mẫu nào",
+        MIN_GOOD_MATCHES,
+    )
     return None
