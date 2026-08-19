@@ -103,11 +103,11 @@ Tại đây có thể test trực tiếp mọi API, kể cả upload ảnh cho `
 | Method | Endpoint                | Mô tả                          |
 | ------ | ----------------------- | ------------------------------ |
 | GET    | `/api/health`           | Health check                   |
-| GET    | `/api/foods`            | Danh sách 3 món ăn             |
+| GET    | `/api/foods`            | Danh sách các món ăn           |
 | GET    | `/api/foods/{food_id}`  | Chi tiết một món (404 nếu sai) |
 | POST   | `/api/foods/scan`       | Upload ảnh → nutrition         |
 
-`food_id` hợp lệ: `mi_quang`, `pho_bo_tai_nam`, `com_ga`, `hamburger`, `pizza`.
+`food_id` hợp lệ: `mi_quang`, `pho_bo_tai_nam`.
 
 ### 7. Test API `/api/foods`
 
@@ -115,20 +115,13 @@ Tại đây có thể test trực tiếp mọi API, kể cả upload ảnh cho `
 curl http://127.0.0.1:8000/api/foods
 ```
 
-```json
-{
-  "foods": [
-    { "id": "com_ga", "name": "Cơm gà", "calories": 520, "protein": 32, "carbs": 58, "fat": 16 },
-    { "id": "hamburger", "name": "Hamburger", "calories": 550, "protein": 25, "carbs": 45, "fat": 30 },
-    { "id": "pizza", "name": "Pizza", "calories": 285, "protein": 12, "carbs": 36, "fat": 10 }
-  ]
-}
-```
+Trả về mảng `foods`, mỗi phần tử là một object `Food` đầy đủ
+(xem cấu trúc ở phần `/api/foods/scan` bên dưới).
 
 Lấy một món:
 
 ```bash
-curl http://127.0.0.1:8000/api/foods/pizza
+curl http://127.0.0.1:8000/api/foods/pho_bo_tai_nam
 ```
 
 ### 8. Test API `/api/foods/scan`
@@ -142,13 +135,29 @@ curl -X POST http://127.0.0.1:8000/api/foods/scan -F "image=@food.jpg"
 ```json
 {
   "success": true,
+  "matched_by": "features",
   "food": {
-    "id": "com_ga",
-    "name": "Cơm gà",
-    "calories": 520,
-    "protein": 32,
-    "carbs": 58,
-    "fat": 16
+    "id": "pho_bo_tai_nam",
+    "name": "Phở bò tái nạm (Hương vị Hà Nội)",
+    "calories": 310,
+    "protein": 20,
+    "carbs": 11,
+    "fat": 16,
+    "health_score": 75,
+    "meal_type": "Bữa sáng",
+    "category": "Mỳ",
+    "description": "Phở bò Hà Nội với bánh phở, thịt bò tái và nạm...",
+    "warning": "Món ăn này là thịt tái nên có nồng độ LDL cholesterol cao",
+    "image_url": "/static/foods/pho_bo_tai_nam.jpg",
+    "macros": [
+      { "key": "protein", "label": "Đạm (Protein)", "value": 20, "unit": "g",
+        "percent": 85, "note": "85% mục tiêu bữa trưa" }
+    ],
+    "analysis": ["Bữa sáng này đạt điểm 7.5/10 — protein rất tốt..."],
+    "advice": "Hãy hạn chế ăn những đồ ăn có nhiều thịt đỏ...",
+    "ingredients": [
+      { "name": "Bánh phở (150g)", "calories": 190 }
+    ]
   },
   "image": {
     "width": 1280,
@@ -156,6 +165,8 @@ curl -X POST http://127.0.0.1:8000/api/foods/scan -F "image=@food.jpg"
   }
 }
 ```
+
+(`macros` có đủ 3 phần tử, `analysis` / `ingredients` rút gọn cho ngắn.)
 
 Gọi từ frontend React:
 
@@ -196,11 +207,8 @@ Thả ảnh món ăn vào `app/data/sample_images/`, **đặt tên file trùng v
 
 ```text
 app/data/sample_images/
-├── mi_quang.jpg          -> quét ảnh này ra món "mi_quang"      (đã có)
-├── pho_bo_tai_nam.jpg    -> quét ảnh này ra món "pho_bo_tai_nam" (đã có)
-├── com_ga.jpg            -> thêm sau nếu cần
-├── hamburger.jpg
-└── pizza.jpg
+├── mi_quang.jpg          -> quét ảnh này ra món "mi_quang"
+└── pho_bo_tai_nam.jpg    -> quét ảnh này ra món "pho_bo_tai_nam"
 ```
 
 Không phải sửa code — thêm file là chạy. Nhớ **restart server** vì ảnh mẫu được

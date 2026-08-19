@@ -7,10 +7,7 @@ Bỏ ảnh món ăn vào đây để khi scan đúng/gần đúng ảnh đó, AP
 ```text
 app/data/sample_images/
 ├── mi_quang.jpg          -> trả về món "mi_quang"
-├── pho_bo_tai_nam.jpg    -> trả về món "pho_bo_tai_nam"
-├── com_ga.jpg            -> trả về món "com_ga"
-├── hamburger.jpg         -> trả về món "hamburger"
-└── pizza.jpg             -> trả về món "pizza"
+└── pho_bo_tai_nam.jpg    -> trả về món "pho_bo_tai_nam"
 ```
 
 Định dạng hỗ trợ: `.jpg` `.jpeg` `.png` `.webp` `.bmp`
